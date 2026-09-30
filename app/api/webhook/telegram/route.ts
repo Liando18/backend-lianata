@@ -86,12 +86,18 @@ async function linkTelegramAccount(telegramId: string, email: string) {
 // ============================================
 export async function POST(request: NextRequest) {
   try {
-    // Verifikasi webhook secret (opsional, tapi direkomendasikan)
+    // Verifikasi webhook secret (opsional)
     if (TELEGRAM_WEBHOOK_SECRET) {
       const secretHeader = request.headers.get("x-telegram-bot-api-secret-token");
-      if (secretHeader !== TELEGRAM_WEBHOOK_SECRET) {
+      if (secretHeader && secretHeader !== TELEGRAM_WEBHOOK_SECRET) {
+        console.error("[Telegram Webhook] Secret mismatch");
         return NextResponse.json({ ok: false }, { status: 401 });
       }
+    }
+
+    if (!TELEGRAM_BOT_TOKEN) {
+      console.error("[Telegram Webhook] TELEGRAM_BOT_TOKEN not set");
+      return NextResponse.json({ ok: true });
     }
 
     const body = await request.json();
@@ -106,6 +112,8 @@ export async function POST(request: NextRequest) {
     const text = message.text.trim();
     const telegramId = message.from.id.toString();
     const firstName = message.from.first_name || "User";
+
+    console.log(`[Telegram] Pesan dari ${firstName} (${telegramId}): ${text}`);
 
     // ─────────────────────────────────────────
     // Handle /start command
