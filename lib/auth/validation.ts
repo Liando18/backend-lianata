@@ -9,12 +9,13 @@ export const registerSchema = z
       .min(8, "Password minimal 8 karakter")
       .regex(/[A-Za-z]/, "Password harus mengandung huruf")
       .regex(/[0-9]/, "Password harus mengandung angka"),
+    phone: z.string().trim().optional(),
   })
   .strict();
 
 export const loginSchema = z
   .object({
-    email: z.string().trim().email("Format email tidak valid").toLowerCase(),
+    email: z.string().trim().min(1, "Email atau nomor handphone tidak boleh kosong"),
     password: z.string().min(1, "Password tidak boleh kosong"),
   })
   .strict();

@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
         id: users.id,
         name: users.name,
         email: users.email,
+        phone: users.phone,
         role: users.role,
         avatarUrl: users.avatarUrl,
         isActive: users.isActive,

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password } = parseResult.data;
+    const { name, email, password, phone } = parseResult.data;
 
     const [existing] = await db
       .select({ id: users.id })
@@ -45,6 +45,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (phone) {
+      const [existingPhone] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.phone, phone))
+        .limit(1);
+
+      if (existingPhone) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Nomor WhatsApp sudah terdaftar pada akun lain.",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
@@ -53,6 +71,7 @@ export async function POST(request: NextRequest) {
       .values({
         name,
         email,
+        phone: phone || null,
         passwordHash,
         role: "user",
       })
@@ -60,6 +79,7 @@ export async function POST(request: NextRequest) {
         id: users.id,
         name: users.name,
         email: users.email,
+        phone: users.phone,
         role: users.role,
         avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,

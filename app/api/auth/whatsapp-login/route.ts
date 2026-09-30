@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users, sessions } from "@/db/schema";
-import { loginSchema } from "@/lib/auth/validation";
 import {
   signAccessToken,
   generateRefreshToken,
@@ -10,29 +8,24 @@ import {
 } from "@/lib/auth/token";
 import { eq, or } from "drizzle-orm";
 
-const DUMMY_HASH =
-  "$2a$12$e8kZ1qXw6mX5g4f6d7s8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e";
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const parseResult = loginSchema.safeParse(body);
+    const rawPhone = typeof body.phone === "string" ? body.phone.trim() : "";
 
-    if (!parseResult.success) {
-      const issues = parseResult.error.issues.map((i) => i.message);
+    if (!rawPhone || rawPhone.length < 10) {
       return NextResponse.json(
         {
           success: false,
-          message: issues[0] || "Data login tidak valid",
-          errors: issues,
+          message: "Nomor WhatsApp minimal 10 digit.",
         },
         { status: 400 }
       );
     }
 
-    const { email, password } = parseResult.data;
-    const identifier = email.trim();
-    const isEmail = identifier.includes("@");
+    const cleaned = rawPhone.replace(/[^0-9]/g, "");
+    const localFormat = cleaned.startsWith("62") ? "0" + cleaned.slice(2) : cleaned;
+    const intlFormat = cleaned.startsWith("0") ? "62" + cleaned.slice(1) : cleaned;
 
     const [user] = await db
       .select({
@@ -40,32 +33,28 @@ export async function POST(request: NextRequest) {
         name: users.name,
         email: users.email,
         phone: users.phone,
-        passwordHash: users.passwordHash,
         role: users.role,
         avatarUrl: users.avatarUrl,
         isActive: users.isActive,
       })
       .from(users)
       .where(
-        isEmail
-          ? eq(users.email, identifier.toLowerCase())
-          : or(
-              eq(users.phone, identifier),
-              eq(users.email, identifier.toLowerCase())
-            )
+        or(
+          eq(users.phone, rawPhone),
+          eq(users.phone, cleaned),
+          eq(users.phone, localFormat),
+          eq(users.phone, intlFormat)
+        )
       )
       .limit(1);
 
-    const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
-    const isPasswordValid = await bcrypt.compare(password, hashToCompare);
-
-    if (!user || !isPasswordValid) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
-          message: "Email/nomor handphone atau kata sandi yang Anda masukkan salah.",
+          message: "Nomor WhatsApp belum terdaftar di sistem. Silakan lakukan pendaftaran terlebih dahulu.",
         },
-        { status: 401 }
+        { status: 404 }
       );
     }
 
@@ -73,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Akun Anda telah dinonaktifkan. Hubungi administrator.",
+          message: "Akun Anda dinonaktifkan. Silakan hubungi dukungan pelanggan.",
         },
         { status: 403 }
       );
@@ -108,7 +97,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "Login berhasil",
+        message: "Login via WhatsApp berhasil.",
         data: {
           user: {
             id: user.id,
@@ -132,7 +121,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: "Terjadi kesalahan internal server saat memproses login.",
+        message: "Terjadi kesalahan internal saat memproses autentikasi WhatsApp.",
       },
       { status: 500 }
     );

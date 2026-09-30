@@ -43,6 +43,8 @@ export const users = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     name: varchar("name", { length: 100 }).notNull(),
     email: varchar("email", { length: 255 }).notNull().unique(),
+    phone: varchar("phone", { length: 25 }),
+    telegramId: varchar("telegram_id", { length: 50 }),
     passwordHash: text("password_hash").notNull(),
     role: userRoleEnum("role").default("user").notNull(),
     avatarUrl: text("avatar_url"),
@@ -57,6 +59,8 @@ export const users = pgTable(
   (table) => [
     index("users_email_idx").on(table.email),
     index("users_role_idx").on(table.role),
+    index("users_phone_idx").on(table.phone),
+    index("users_telegram_id_idx").on(table.telegramId),
   ]
 );
 

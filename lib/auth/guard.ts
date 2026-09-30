@@ -8,6 +8,7 @@ export interface AuthenticatedUser {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
   role: "admin" | "user";
   avatarUrl: string | null;
 }
@@ -62,6 +63,7 @@ export async function authenticateRequest(
       id: users.id,
       name: users.name,
       email: users.email,
+      phone: users.phone,
       role: users.role,
       avatarUrl: users.avatarUrl,
       isActive: users.isActive,
@@ -101,6 +103,7 @@ export async function authenticateRequest(
       id: existingUser.id,
       name: existingUser.name,
       email: existingUser.email,
+      phone: existingUser.phone,
       role: existingUser.role,
       avatarUrl: existingUser.avatarUrl,
     },

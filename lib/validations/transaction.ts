@@ -24,7 +24,9 @@ export const createTransactionSchema = z
     categoryId: z.string().uuid("ID Kategori tidak valid").optional().nullable(),
     transactionDate: z
       .string()
-      .datetime({ message: "Format tanggal transaksi harus ISO 8601" })
+      .refine((val) => !isNaN(Date.parse(val)), {
+        message: "Format tanggal transaksi harus berupa tanggal valid",
+      })
       .optional(),
     source: z.enum(["manual", "ai_chat"]).optional().default("manual"),
     rawPrompt: z.string().optional().nullable(),
@@ -59,7 +61,9 @@ export const updateTransactionSchema = z
     categoryId: z.string().uuid("ID Kategori tidak valid").optional().nullable(),
     transactionDate: z
       .string()
-      .datetime({ message: "Format tanggal transaksi harus ISO 8601" })
+      .refine((val) => !isNaN(Date.parse(val)), {
+        message: "Format tanggal transaksi harus berupa tanggal valid",
+      })
       .optional(),
   })
   .strict();
