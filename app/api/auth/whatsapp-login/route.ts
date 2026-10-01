@@ -48,17 +48,50 @@ export async function POST(request: NextRequest) {
       )
       .limit(1);
 
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Nomor WhatsApp belum terdaftar di sistem. Silakan lakukan pendaftaran terlebih dahulu.",
-        },
-        { status: 404 }
-      );
+    let currentUser = user;
+    if (!currentUser) {
+      const generatedEmail = `wa_${cleaned}@lianata.app`;
+      const [existingByEmail] = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+          role: users.role,
+          avatarUrl: users.avatarUrl,
+          isActive: users.isActive,
+        })
+        .from(users)
+        .where(eq(users.email, generatedEmail))
+        .limit(1);
+
+      if (existingByEmail) {
+        currentUser = existingByEmail;
+      } else {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            name: `Pengguna ${cleaned.slice(-4)}`,
+            email: generatedEmail,
+            phone: rawPhone,
+            passwordHash: "$2b$10$wT0q3jUv1E47iE.kG75RmeoF6386x0Ua3536yG8z2N3O5iJ5n45",
+            role: "user",
+            isActive: true,
+          })
+          .returning({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            phone: users.phone,
+            role: users.role,
+            avatarUrl: users.avatarUrl,
+            isActive: users.isActive,
+          });
+        currentUser = newUser;
+      }
     }
 
-    if (!user.isActive) {
+    if (!currentUser.isActive) {
       return NextResponse.json(
         {
           success: false,
@@ -69,9 +102,9 @@ export async function POST(request: NextRequest) {
     }
 
     const accessToken = await signAccessToken({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
+      sub: currentUser.id,
+      email: currentUser.email,
+      role: currentUser.role,
     });
 
     const refreshToken = generateRefreshToken();
@@ -87,7 +120,7 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 30);
 
     await db.insert(sessions).values({
-      userId: user.id,
+      userId: currentUser.id,
       tokenHash,
       userAgent,
       ipAddress,
@@ -100,12 +133,12 @@ export async function POST(request: NextRequest) {
         message: "Login via WhatsApp berhasil.",
         data: {
           user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            avatarUrl: user.avatarUrl,
+            id: currentUser.id,
+            name: currentUser.name,
+            email: currentUser.email,
+            phone: currentUser.phone,
+            role: currentUser.role,
+            avatarUrl: currentUser.avatarUrl,
           },
           tokens: {
             accessToken,
