@@ -8,8 +8,11 @@ export const createTransactionSchema = z
     amount: z
       .union([z.number(), z.string()])
       .transform((val) => {
-        const num = typeof val === "string" ? parseFloat(val) : val;
-        return num;
+        if (typeof val === "string") {
+          const cleaned = val.replace(/\./g, "").replace(/,/g, ".");
+          return parseFloat(cleaned);
+        }
+        return val;
       })
       .pipe(
         z
@@ -43,8 +46,11 @@ export const updateTransactionSchema = z
     amount: z
       .union([z.number(), z.string()])
       .transform((val) => {
-        const num = typeof val === "string" ? parseFloat(val) : val;
-        return num;
+        if (typeof val === "string") {
+          const cleaned = val.replace(/\./g, "").replace(/,/g, ".");
+          return parseFloat(cleaned);
+        }
+        return val;
       })
       .pipe(
         z
