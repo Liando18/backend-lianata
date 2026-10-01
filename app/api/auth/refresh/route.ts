@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
         userId: sessions.userId,
         isRevoked: sessions.isRevoked,
         expiresAt: sessions.expiresAt,
+        updatedAt: sessions.updatedAt,
       })
       .from(sessions)
       .where(eq(sessions.tokenHash, incomingTokenHash))
@@ -45,23 +46,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (existingSession.isRevoked) {
-      await db
-        .update(sessions)
-        .set({ isRevoked: true, updatedAt: new Date() })
-        .where(eq(sessions.userId, existingSession.userId));
-
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Keamanan terancam: Token kedaluwarsa telah digunakan ulang. Semua sesi telah dicabut demi keamanan akun Anda. Silakan login kembali.",
-        },
-        { status: 401 }
-      );
-    }
-
     const now = new Date();
+    if (existingSession.isRevoked) {
+      const diffMs = now.getTime() - new Date(existingSession.updatedAt).getTime();
+      if (diffMs > 60000) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Sesi telah kedaluwarsa. Silakan login kembali.",
+          },
+          { status: 401 }
+        );
+      }
+    }
     if (existingSession.expiresAt < now) {
       return NextResponse.json(
         {
@@ -129,7 +126,7 @@ export async function POST(request: NextRequest) {
           accessToken: newAccessToken,
           refreshToken: newRefreshToken,
           tokenType: "Bearer",
-          expiresIn: 3600,
+          expiresIn: 2592000,
         },
       },
       { status: 200 }

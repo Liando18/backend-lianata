@@ -22,7 +22,7 @@ export async function signAccessToken(payload: TokenPayload): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.sub)
     .setIssuedAt()
-    .setExpirationTime("1h")
+    .setExpirationTime("30d")
     .sign(secretKey);
 }
 

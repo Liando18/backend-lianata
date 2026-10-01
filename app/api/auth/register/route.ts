@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
             accessToken,
             refreshToken,
             tokenType: "Bearer",
-            expiresIn: 3600,
+            expiresIn: 2592000,
           },
         },
       },
